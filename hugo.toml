@@ -1,0 +1,22 @@
+baseURL = "https://your-site-url.com/"
+languageCode = "en-us"
+title = "CFL Negotiation List Tracker"
+theme = "PaperMod"
+
+[params]
+  defaultTheme = "light"
+  ShowReadingTime = true
+  ShowCodeCopyButtons = true
+  poweredBy = false
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[Menus]
+  main = [
+      {Name = "About", URL = "about/", Weight=10},
+      {Name = "Twitter", URL = "https://x.com/cfl_neg_list", Weight=1},
+      {Name = "Bluesky", URL = "https://bsky.app/profile/cfl-neg-list.bsky.social", Weight=-1}
+  ]
