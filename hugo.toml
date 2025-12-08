@@ -5,7 +5,7 @@ theme = "PaperMod"
 
 [params]
   defaultTheme = "light"
-  ShowReadingTime = true
+  ShowReadingTime = false
   ShowCodeCopyButtons = true
   poweredBy = false
 
