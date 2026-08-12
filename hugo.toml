@@ -1,4 +1,4 @@
-baseURL = "https://cfl-neg-list-website.onrender.com/"
+baseURL = "https://charlie-henry.github.io/cfl-neg-list-website/"
 languageCode = "en-us"
 title = "CFL Negotiation List Tracker"
 theme = "PaperMod"
