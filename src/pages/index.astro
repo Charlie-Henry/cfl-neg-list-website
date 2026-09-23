@@ -1,4 +1,6 @@
 ---
+export const prerender = true;
+
 import Layout from '../layouts/Layout.astro';
 
 const PLAYERS_URL = 'https://storage.googleapis.com/aus-dashboard/cfl-neg-list/players.json';
@@ -24,7 +26,12 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
     />
   </div>
 
-  <div class="team-filters" id="team-filters"></div>
+  <div class="filters-row">
+    <select id="position-filter" aria-label="Filter by position">
+      <option value="">All Positions</option>
+    </select>
+    <div class="team-filters" id="team-filters"></div>
+  </div>
 
   <div class="table-wrap">
     <table>
@@ -66,6 +73,7 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
 
     let allRows = [];
     let selectedTeams = new Set();
+    let selectedPosition = '';
     let sortField = 'last_transaction_date';
     let sortDir = -1;
     let searchQuery = '';
@@ -79,6 +87,9 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
       let rows = allRows;
       if (selectedTeams.size > 0) {
         rows = rows.filter((r) => selectedTeams.has(r.current_team));
+      }
+      if (selectedPosition) {
+        rows = rows.filter((r) => r.position === selectedPosition);
       }
       if (searchQuery) {
         rows = rows.filter((r) =>
@@ -181,6 +192,21 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
         if (searchInput) {
           searchInput.addEventListener('input', (e) => {
             searchQuery = e.target.value.trim().toLowerCase();
+            renderTable();
+          });
+        }
+
+        const positionSelect = document.getElementById('position-filter');
+        if (positionSelect) {
+          const positions = [...new Set(allRows.map((r) => r.position).filter(Boolean))].sort();
+          positions.forEach((pos) => {
+            const opt = document.createElement('option');
+            opt.value = pos;
+            opt.textContent = pos;
+            positionSelect.appendChild(opt);
+          });
+          positionSelect.addEventListener('change', (e) => {
+            selectedPosition = e.target.value;
             renderTable();
           });
         }
