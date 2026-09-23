@@ -1,0 +1,51 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Independent tracking of CFL negotiation list activity — every add, remove, and signing, by player.',
+} = Astro.props;
+
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Public+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="site-title" href="/">CFL Negotiation List Tracker</a>
+        <nav>
+          <a href="/about/">About</a>
+          <a href="https://x.com/cfl_neg_list" target="_blank" rel="noopener">Twitter</a>
+          <a href="https://bsky.app/profile/cfl-neg-list.bsky.social" target="_blank" rel="noopener">Bluesky</a>
+        </nav>
+      </div>
+    </header>
+    <main class="wrap">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        Independent tracking of CFL negotiation lists. Not affiliated with the Canadian Football League.
+      </div>
+    </footer>
+  </body>
+</html>
