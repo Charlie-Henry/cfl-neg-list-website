@@ -58,6 +58,11 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
       if (!abbrev) return '—';
       return `<span class="team-badge">${abbrev}<img class="team-logo" src="${teamLogoUrl(abbrev)}" alt="" loading="lazy" onerror="this.style.display='none'" /></span>`;
     }
+    function collegeBadge(college, logoUrl) {
+      if (!college) return '—';
+      if (!logoUrl) return college;
+      return `<span class="team-badge">${college}<img class="team-logo" src="${logoUrl}" alt="" loading="lazy" onerror="this.style.display='none'" /></span>`;
+    }
 
     let allRows = [];
     let selectedTeams = new Set();
@@ -102,7 +107,7 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
         <tr data-id="${r.id}">
           <td><a href="/players/${r.id}/">${r.player_name ?? ''}</a></td>
           <td>${r.position ?? ''}</td>
-          <td>${r.college ?? ''}</td>
+          <td>${collegeBadge(r.college, r.college_logo_url)}</td>
           <td>${teamBadge(r.current_team)}</td>
           <td>${formatDate(r.last_transaction_date)}</td>
         </tr>`).join('');

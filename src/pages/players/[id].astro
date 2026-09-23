@@ -42,6 +42,11 @@ function teamBadgeHtml(abbrev) {
   if (!abbrev) return '—';
   return `<span class="team-badge">${abbrev}<img class="team-logo" src="${teamLogoUrl(abbrev)}" alt="" loading="lazy" onerror="this.style.display='none'" /></span>`;
 }
+function collegeBadgeHtml(college, logoUrl) {
+  if (!college) return '—';
+  if (!logoUrl) return college;
+  return `<span class="team-badge">${college}<img class="team-logo" src="${logoUrl}" alt="" loading="lazy" onerror="this.style.display='none'" /></span>`;
+}
 
 const flagDefs = [
   ['nfl_draft_pick', 'NFL Draft Pick'],
@@ -75,7 +80,7 @@ const trueFlags = player ? flagDefs.filter(([key]) => player[key]) : [];
           </div>
           <div>
             <dt>College</dt>
-            <dd>{player.college || '—'}</dd>
+            <dd set:html={collegeBadgeHtml(player.college, player.college_logo_url)} />
           </div>
           <div>
             <dt>Current team</dt>
@@ -125,10 +130,7 @@ const trueFlags = player ? flagDefs.filter(([key]) => player[key]) : [];
               <li class="tx-item">
                 <span class="tx-date">{formatDate(tx.accepted_at)}</span>
                 <span class={`tx-action ${isAdd(tx.action) ? 'added' : 'removed'}`}>{tx.action}</span>
-                <span class="tx-team">
-                  <span class="tx-team-abbrv">{tx.team_abbrv}</span>
-                  <span class="tx-team-pos">{tx.position}</span>
-                </span>
+                <span class="tx-team" set:html={teamBadgeHtml(tx.team_abbrv)} />
               </li>
             ))}
           </ul>
