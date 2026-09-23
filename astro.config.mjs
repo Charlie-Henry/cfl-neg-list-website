@@ -9,7 +9,7 @@ import cloudflare from '@astrojs/cloudflare';
 // `site` is only used for absolute-URL generation (canonical links etc.);
 // update it again if a custom domain is added later.
 export default defineConfig({
-  site: 'https://cfl-neg-list-website.thomashenry.workers.dev',
+  site: 'https://cfl-negotiation-list.fyi',
   output: 'server',
   adapter: cloudflare(),
 });
