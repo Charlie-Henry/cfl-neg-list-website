@@ -1,0 +1,194 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const PLAYERS_URL = 'https://storage.googleapis.com/aus-dashboard/cfl-neg-list/players.json';
+const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-images';
+---
+
+<Layout title="CFL Negotiation List Tracker">
+  <div class="hero">
+    <h1>CFL Negotiation List Tracker</h1>
+    <p>
+      Every player currently or recently on a CFL team's negotiation list — search by name,
+      position, college, or team, then click through for full transaction history.
+    </p>
+    <p class="stat-line" id="stat-line">Loading current list&hellip;</p>
+  </div>
+
+  <div class="search-box">
+    <input
+      type="text"
+      id="player-search"
+      placeholder="Search by name, position, college, team..."
+      autocomplete="off"
+    />
+  </div>
+
+  <div class="team-filters" id="team-filters"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-field="player_name">Player</th>
+          <th data-field="position">Pos</th>
+          <th data-field="college">College</th>
+          <th data-field="current_team">Team</th>
+          <th data-field="last_transaction_date" class="sorted">Date Added</th>
+        </tr>
+      </thead>
+      <tbody id="player-table-body">
+        <tr><td colspan="5" class="table-empty">Loading&hellip;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script define:vars={{ PLAYERS_URL, TEAM_LOGOS_BASE }} is:inline>
+    // Fetched client-side (not baked in at build time) so the table reflects
+    // the latest players.json export even between site rebuilds. Only brand
+    // new players need a rebuild before their detail page exists.
+    // Plain <table> + vanilla JS rather than a grid library — simpler, and
+    // avoids library-vs-custom-CSS layout conflicts entirely.
+    const TEAMS = ['BC', 'CGY', 'EDM', 'HAM', 'MTL', 'OTT', 'SSK', 'TOR', 'WPG'];
+
+    function teamLogoUrl(abbrev) {
+      return `${TEAM_LOGOS_BASE}/${abbrev.toLowerCase()}.png`;
+    }
+    function teamBadge(abbrev) {
+      if (!abbrev) return '—';
+      return `<span class="team-badge">${abbrev}<img class="team-logo" src="${teamLogoUrl(abbrev)}" alt="" loading="lazy" onerror="this.style.display='none'" /></span>`;
+    }
+
+    let allRows = [];
+    let selectedTeams = new Set();
+    let sortField = 'last_transaction_date';
+    let sortDir = -1;
+    let searchQuery = '';
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function getFilteredSortedRows() {
+      let rows = allRows;
+      if (selectedTeams.size > 0) {
+        rows = rows.filter((r) => selectedTeams.has(r.current_team));
+      }
+      if (searchQuery) {
+        rows = rows.filter((r) =>
+          ['player_name', 'position', 'college', 'current_team', 'status', 'nationality']
+            .some((f) => (r[f] || '').toString().toLowerCase().includes(searchQuery))
+        );
+      }
+      rows = rows.slice().sort((a, b) => {
+        const av = (a[sortField] ?? '').toString().toLowerCase();
+        const bv = (b[sortField] ?? '').toString().toLowerCase();
+        if (av < bv) return -1 * sortDir;
+        if (av > bv) return 1 * sortDir;
+        return 0;
+      });
+      return rows;
+    }
+
+    function renderTable() {
+      const rows = getFilteredSortedRows();
+      const tbody = document.getElementById('player-table-body');
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="table-empty">No players found</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map((r) => `
+        <tr data-id="${r.id}">
+          <td><a href="/players/${r.id}/">${r.player_name ?? ''}</a></td>
+          <td>${r.position ?? ''}</td>
+          <td>${r.college ?? ''}</td>
+          <td>${teamBadge(r.current_team)}</td>
+          <td>${formatDate(r.last_transaction_date)}</td>
+        </tr>`).join('');
+      tbody.querySelectorAll('tr[data-id]').forEach((tr) => {
+        tr.addEventListener('click', (e) => {
+          if (e.target.tagName === 'A') return;
+          window.location.href = `/players/${tr.dataset.id}/`;
+        });
+      });
+    }
+
+    function renderTeamFilters() {
+      const container = document.getElementById('team-filters');
+      const buttons = ['<button type="button" class="team-filter-btn active" data-team="">All</button>']
+        .concat(TEAMS.map((t) => `<button type="button" class="team-filter-btn" data-team="${t}">${t}<img class="team-logo" src="${teamLogoUrl(t)}" alt="" loading="lazy" onerror="this.style.display='none'" /></button>`));
+      container.innerHTML = buttons.join('');
+      const allBtn = container.querySelector('.team-filter-btn[data-team=""]');
+      container.querySelectorAll('.team-filter-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const team = btn.dataset.team;
+          if (team === '') {
+            selectedTeams.clear();
+            container.querySelectorAll('.team-filter-btn').forEach((b) => b.classList.remove('active'));
+            allBtn.classList.add('active');
+          } else {
+            allBtn.classList.remove('active');
+            if (selectedTeams.has(team)) {
+              selectedTeams.delete(team);
+              btn.classList.remove('active');
+            } else {
+              selectedTeams.add(team);
+              btn.classList.add('active');
+            }
+            if (selectedTeams.size === 0) allBtn.classList.add('active');
+          }
+          renderTable();
+        });
+      });
+    }
+
+    fetch(PLAYERS_URL)
+      .then((res) => res.json())
+      .then((players) => {
+        allRows = Object.entries(players).map(([id, p]) => ({ id, ...p }));
+
+        const teams = new Set(allRows.map((r) => r.current_team).filter(Boolean));
+        const active = allRows.filter((r) => r.status === 'active neg list').length;
+        const lastUpdated = allRows.reduce((max, r) => (r.modified_date > max ? r.modified_date : max), '');
+        const statLine = document.getElementById('stat-line');
+        if (statLine) {
+          const dateStr = lastUpdated ? formatDate(lastUpdated) : 'unknown';
+          statLine.textContent = `${active} active across ${teams.size} teams — updated ${dateStr}`;
+        }
+
+        document.querySelectorAll('thead th[data-field]').forEach((th) => {
+          th.addEventListener('click', () => {
+            const field = th.dataset.field;
+            if (sortField === field) {
+              sortDir *= -1;
+            } else {
+              sortField = field;
+              sortDir = 1;
+            }
+            document.querySelectorAll('thead th').forEach((h) => h.classList.remove('sorted'));
+            th.classList.add('sorted');
+            renderTable();
+          });
+        });
+
+        const searchInput = document.getElementById('player-search');
+        if (searchInput) {
+          searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value.trim().toLowerCase();
+            renderTable();
+          });
+        }
+
+        renderTeamFilters();
+        renderTable();
+      })
+      .catch((err) => {
+        const statLine = document.getElementById('stat-line');
+        if (statLine) statLine.textContent = 'Could not load the current list — try refreshing.';
+        const tbody = document.getElementById('player-table-body');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Could not load the current list.</td></tr>';
+        console.error('Failed to load players.json', err);
+      });
+  </script>
+</Layout>

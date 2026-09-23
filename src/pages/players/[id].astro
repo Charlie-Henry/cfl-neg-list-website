@@ -1,0 +1,139 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const PLAYERS_URL = 'https://storage.googleapis.com/aus-dashboard/cfl-neg-list/players.json';
+const TRANSACTIONS_URL = 'https://storage.googleapis.com/aus-dashboard/cfl-neg-list/transactions.json';
+
+// Server-rendered per request (no getStaticPaths) — a brand-new player_id
+// resolves immediately instead of needing a rebuild, at the cost of fetching
+// players.json on every page view instead of once at build time.
+const { id } = Astro.params;
+
+const playersRes = await fetch(PLAYERS_URL);
+const players = await playersRes.json();
+const player = players[id];
+
+if (!player) {
+  Astro.response.status = 404;
+}
+
+let transactions = [];
+if (player) {
+  const txRes = await fetch(TRANSACTIONS_URL);
+  const allTransactions = await txRes.json();
+  transactions = (allTransactions[id] || [])
+    .slice()
+    .sort((a, b) => (a.accepted_at < b.accepted_at ? 1 : -1));
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function isAdd(action) {
+  return (action || '').toUpperCase().startsWith('ADD');
+}
+
+function teamLogoUrl(abbrev) {
+  return `https://storage.googleapis.com/aus-dashboard/cfl-team-images/${abbrev.toLowerCase()}.png`;
+}
+function teamBadgeHtml(abbrev) {
+  if (!abbrev) return '—';
+  return `<span class="team-badge">${abbrev}<img class="team-logo" src="${teamLogoUrl(abbrev)}" alt="" loading="lazy" onerror="this.style.display='none'" /></span>`;
+}
+
+const flagDefs = [
+  ['nfl_draft_pick', 'NFL Draft Pick'],
+  ['nfl_camp_or_practice_squad', 'NFL Camp / Practice Squad'],
+  ['xfl_usfl', 'XFL/USFL'],
+  ['nfl_starter', 'NFL Starter'],
+  ['ncaa_starter', 'NCAA Starter'],
+];
+const trueFlags = player ? flagDefs.filter(([key]) => player[key]) : [];
+---
+
+<Layout
+  title={player ? `${player.player_name} — CFL Negotiation List Tracker` : 'Player not found — CFL Negotiation List Tracker'}
+  description={player ? player.summary?.slice(0, 155) : 'This player could not be found.'}
+>
+  {!player ? (
+    <div class="player-header">
+      <a class="back-link" href="/">&larr; Back to full list</a>
+      <h1>Player not found</h1>
+      <p>We couldn't find a player with that ID. They may have been removed, or the link may be out of date.</p>
+    </div>
+  ) : (
+    <Fragment>
+      <div class="player-header">
+        <a class="back-link" href="/">&larr; Back to full list</a>
+        <h1>{player.player_name}</h1>
+        <dl class="player-facts">
+          <div>
+            <dt>Position</dt>
+            <dd>{player.position || '—'}</dd>
+          </div>
+          <div>
+            <dt>College</dt>
+            <dd>{player.college || '—'}</dd>
+          </div>
+          <div>
+            <dt>Current team</dt>
+            <dd set:html={teamBadgeHtml(player.current_team)} />
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{player.status || '—'}</dd>
+          </div>
+          <div>
+            <dt>Nationality</dt>
+            <dd>{player.nationality || '—'}</dd>
+          </div>
+        </dl>
+      </div>
+
+      {trueFlags.length > 0 && (
+        <div>
+          <h2>Background</h2>
+          <ul class="flag-list">
+            {trueFlags.map(([, label]) => (
+              <li class="flag-item">
+                <svg class="flag-check" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M3 8.5L6.5 12L13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {player.summary && (
+        <div class="summary">
+          <h2>Scouting summary</h2>
+          <p>{player.summary}</p>
+        </div>
+      )}
+
+      <div>
+        <h2>Transaction history</h2>
+        {transactions.length === 0 ? (
+          <p>No transaction history on file.</p>
+        ) : (
+          <ul class="tx-list">
+            {transactions.map((tx) => (
+              <li class="tx-item">
+                <span class="tx-date">{formatDate(tx.accepted_at)}</span>
+                <span class={`tx-action ${isAdd(tx.action) ? 'added' : 'removed'}`}>{tx.action}</span>
+                <span class="tx-team">
+                  <span class="tx-team-abbrv">{tx.team_abbrv}</span>
+                  <span class="tx-team-pos">{tx.position}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Fragment>
+  )}
+</Layout>
