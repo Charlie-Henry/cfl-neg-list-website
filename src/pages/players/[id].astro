@@ -35,6 +35,22 @@ function isAdd(action) {
   return (action || '').toUpperCase().startsWith('ADD');
 }
 
+function describeAction(action, teamAbbrv) {
+  const team = teamBadgeHtml(teamAbbrv);
+  switch ((action || '').toUpperCase()) {
+    case 'ADD NEGOTIATION LIST':
+      return `Added to ${team} negotiation list`;
+    case 'REM SGD NEGOTIATION LIST':
+      return `Signed and removed from ${team} negotiation list`;
+    case 'REM UNS NEGOTIATION LIST':
+      return `Removed from ${team} negotiation list`;
+    default:
+      // Fallback for any action type we haven't seen yet, so it still
+      // shows something rather than disappearing silently.
+      return action || '—';
+  }
+}
+
 function teamLogoUrl(abbrev) {
   return `https://storage.googleapis.com/aus-dashboard/cfl-team-images/${abbrev.toLowerCase()}.png`;
 }
@@ -129,8 +145,7 @@ const trueFlags = player ? flagDefs.filter(([key]) => player[key]) : [];
             {transactions.map((tx) => (
               <li class="tx-item">
                 <span class="tx-date">{formatDate(tx.accepted_at)}</span>
-                <span class={`tx-action ${isAdd(tx.action) ? 'added' : 'removed'}`}>{tx.action}</span>
-                <span class="tx-team" set:html={teamBadgeHtml(tx.team_abbrv)} />
+                <span class={`tx-action ${isAdd(tx.action) ? 'added' : 'removed'}`} set:html={describeAction(tx.action, tx.team_abbrv)} />
               </li>
             ))}
           </ul>
