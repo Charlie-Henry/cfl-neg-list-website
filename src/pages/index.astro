@@ -11,8 +11,8 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
   <div class="hero">
     <h1>CFL Negotiation List Tracker</h1>
     <p>
-      Every player currently or recently on a CFL team's negotiation list — search by name,
-      position, college, or team, then click through for full transaction history.
+      Every player currently on a CFL team's negotiation list. View a player's career summary
+      and see past negotiation list activity by clicking on a player's name.
     </p>
     <p class="stat-line" id="stat-line">Loading current list&hellip;</p>
   </div>
@@ -165,12 +165,10 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
         allRows = Object.entries(players).map(([id, p]) => ({ id, ...p }));
 
         const teams = new Set(allRows.map((r) => r.current_team).filter(Boolean));
-        const active = allRows.filter((r) => r.status === 'active neg list').length;
-        const lastUpdated = allRows.reduce((max, r) => (r.modified_date > max ? r.modified_date : max), '');
+        const active = allRows.length;
         const statLine = document.getElementById('stat-line');
         if (statLine) {
-          const dateStr = lastUpdated ? formatDate(lastUpdated) : 'unknown';
-          statLine.textContent = `${active} active across ${teams.size} teams — updated ${dateStr}`;
+          statLine.textContent = `${active} active across ${teams.size} teams — checked hourly`;
         }
 
         document.querySelectorAll('thead th[data-field]').forEach((th) => {
