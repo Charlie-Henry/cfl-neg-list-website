@@ -7,14 +7,17 @@ const PLAYERS_URL = 'https://storage.googleapis.com/aus-dashboard/cfl-neg-list/p
 const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-images';
 ---
 
-<Layout title="CFL Negotiation List Tracker">
+<Layout
+  title="Recent Signings — CFL Negotiation List Tracker"
+  description="The most recent players signed off CFL negotiation lists — search by name, position, college, or team."
+>
   <div class="hero">
-    <h1>CFL Negotiation List Tracker</h1>
+    <h1>Recent Signings</h1>
     <p>
-      Every player currently on a CFL team's negotiation list. View a player's career summary
-      and see past negotiation list activity by clicking on a player's name.
+      The most recently signed players across the league. Search by name, position, college,
+      or team, then click through for a player's full transaction history.
     </p>
-    <p class="stat-line" id="stat-line">Loading current list&hellip;</p>
+    <p class="stat-line" id="stat-line">Loading recent signings&hellip;</p>
   </div>
 
   <div class="search-box">
@@ -41,7 +44,7 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
           <th data-field="position">Pos</th>
           <th data-field="college">College</th>
           <th data-field="current_team">Team</th>
-          <th data-field="last_transaction_date" class="sorted">Date Added</th>
+          <th data-field="last_transaction_date" class="sorted">Date Signed</th>
         </tr>
       </thead>
       <tbody id="player-table-body">
@@ -51,11 +54,10 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
   </div>
 
   <script define:vars={{ PLAYERS_URL, TEAM_LOGOS_BASE }} is:inline>
-    // Fetched client-side (not baked in at build time) so the table reflects
-    // the latest players.json export even between site rebuilds. Only brand
-    // new players need a rebuild before their detail page exists.
-    // Plain <table> + vanilla JS rather than a grid library — simpler, and
-    // avoids library-vs-custom-CSS layout conflicts entirely.
+    // Same client-side-fetch + plain-table pattern as the homepage. The
+    // pipeline is responsible for capping this to the 50 most recent
+    // signings (via which player rows carry status === "signed") — this
+    // page just displays whatever it's given, sorted by signing date.
     const TEAMS = ['BC', 'CGY', 'EDM', 'HAM', 'MTL', 'OTT', 'SSK', 'TOR', 'WPG'];
 
     function teamLogoUrl(abbrev) {
@@ -164,13 +166,12 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
       .then((players) => {
         allRows = Object.entries(players)
           .map(([id, p]) => ({ id, ...p }))
-          .filter((r) => r.status !== 'signed');
+          .filter((r) => r.status === 'signed');
 
         const teams = new Set(allRows.map((r) => r.current_team).filter(Boolean));
-        const active = allRows.length;
         const statLine = document.getElementById('stat-line');
         if (statLine) {
-          statLine.textContent = `${active} active across ${teams.size} teams — checked hourly`;
+          statLine.textContent = `${allRows.length} recent signings across ${teams.size} teams — checked hourly`;
         }
 
         document.querySelectorAll('thead th[data-field]').forEach((th) => {
@@ -216,9 +217,9 @@ const TEAM_LOGOS_BASE = 'https://storage.googleapis.com/aus-dashboard/cfl-team-i
       })
       .catch((err) => {
         const statLine = document.getElementById('stat-line');
-        if (statLine) statLine.textContent = 'Could not load the current list — try refreshing.';
+        if (statLine) statLine.textContent = 'Could not load recent signings — try refreshing.';
         const tbody = document.getElementById('player-table-body');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Could not load the current list.</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Could not load recent signings.</td></tr>';
         console.error('Failed to load players.json', err);
       });
   </script>
